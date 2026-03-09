@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        APP_PORT   = '5000'
+        APP_PORT   = '5001'
         ZAP_PORT   = '8090'
         DOCKER_NET = 'devsecops-lab'
     }
