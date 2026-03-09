@@ -46,27 +46,6 @@ pipeline {
             }
         }
 
-        stage('Quality Gate') {
-            steps {
-                echo 'Verification des erreurs de securite...'
-                sh '''
-                    MEDIUM=$(python3 -c "
-import json
-with open('bandit-report.json') as f:
-    data = json.load(f)
-total = data['metrics']['_totals']['CONFIDENCE.MEDIUM']
-print(total)
-")
-                    echo "Nombre d erreurs MEDIUM: $MEDIUM"
-                    if [ "$MEDIUM" -gt "0" ]; then
-                        echo "ECHEC : trop d erreurs MEDIUM ($MEDIUM)"
-                        exit 1
-                    fi
-                    echo "OK : aucune erreur MEDIUM"
-                '''
-            }
-        }
-
         stage('Docker Build') {
             steps {
                 echo 'Construction de l image Docker...'
@@ -111,6 +90,28 @@ print(total)
                     archiveArtifacts artifacts: 'zap-report.json',
                                      allowEmptyArchive: true
                 }
+            }
+        }
+
+        // ── QUALITY GATE ──────────────────────────────────────────────────
+        stage('Quality Gate') {
+            steps {
+                echo 'Verification des erreurs de securite...'
+                sh '''
+                    MEDIUM=$(python3 -c "
+import json
+with open('bandit-report.json') as f:
+    data = json.load(f)
+total = data['metrics']['_totals']['CONFIDENCE.MEDIUM']
+print(total)
+")
+                    echo "Nombre d erreurs MEDIUM: $MEDIUM"
+                    if [ "$MEDIUM" -gt "0" ]; then
+                        echo "ECHEC : trop d erreurs MEDIUM ($MEDIUM)"
+                        exit 1
+                    fi
+                    echo "OK : aucune erreur MEDIUM"
+                '''
             }
         }
     }
