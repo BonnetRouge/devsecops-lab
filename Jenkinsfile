@@ -67,7 +67,8 @@ pipeline {
                 sh '''
                     docker run --rm \
                         --network ${DOCKER_NET} \
-                        -v $(pwd):/zap/wrk \
+                        -v $(pwd):/zap/wrk:rw \
+                        --user root \
                         ghcr.io/zaproxy/zaproxy:stable \
                         zap-baseline.py \
                         -t http://target-app:5000 \
