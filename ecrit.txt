@@ -1,0 +1,2 @@
+les apostrophes autour des émojis (dans le code), ne sont pas reconnus
+le block post à la fin est mélangé
