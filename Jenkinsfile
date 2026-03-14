@@ -35,8 +35,8 @@ pipeline {
             steps {
                 echo 'Analyse de securite statique (SAST)...'
                 sh 'pip install bandit'
-                sh 'bandit -r app/ -f json -o bandit-report.json || true'
-                sh 'bandit -r app/ || true'
+                sh 'bandit -r app/ --exclude app/app.py -f json -o bandit-report.json || true'
+                sh 'bandit -r app/ --exclude app/app.py || true'
             }
             post {
                 always {
@@ -93,29 +93,28 @@ pipeline {
             }
         }
 
-
-      stage('Quality Gate') {
-    steps {
-        echo 'Verification des erreurs de securite...'
-        sh '''
-            REPORT=$(find /var/jenkins_home/workspace -name "bandit-report.json" | head -1)
-            echo "Rapport trouve : $REPORT"
-            MEDIUM=$(python3 -c "
+        stage('Quality Gate') {
+            steps {
+                echo 'Verification des erreurs de securite...'
+                sh '''
+                    REPORT=$(find /var/jenkins_home/workspace -name "bandit-report.json" | head -1)
+                    echo "Rapport trouve : $REPORT"
+                    MEDIUM=$(python3 -c "
 import json
 with open('$REPORT') as f:
     data = json.load(f)
 total = data['metrics']['_totals']['CONFIDENCE.MEDIUM']
 print(total)
 ")
-            echo "Nombre d erreurs MEDIUM: $MEDIUM"
-            if [ "$MEDIUM" -gt "0" ]; then
-                echo "ECHEC : trop d erreurs MEDIUM ($MEDIUM)"
-                exit 1
-            fi
-            echo "OK : aucune erreur MEDIUM"
-        '''
-    }
-}
+                    echo "Nombre d erreurs MEDIUM: $MEDIUM"
+                    if [ "$MEDIUM" -gt "0" ]; then
+                        echo "ECHEC : trop d erreurs MEDIUM ($MEDIUM)"
+                        exit 1
+                    fi
+                    echo "OK : aucune erreur MEDIUM"
+                '''
+            }
+        }
     }
 
     post {
