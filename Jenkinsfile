@@ -82,11 +82,13 @@ pipeline {
                     sh 'docker stop target-app || true'
                     sh 'docker rm target-app || true'
                     publishHTML([
-                        allowMissing: true,
-                        reportDir: '.',
-                        reportFiles: 'zap-report.html',
-                        reportName: 'ZAP Security Report'
-                    ])
+                            allowMissing: true,
+                            alwaysLinkToLastBuild: true,
+                            keepAll: true,
+                            reportDir: '.',
+                            reportFiles: 'zap-report.html',
+                            reportName: 'ZAP Security Report'
+                                ])
                     archiveArtifacts artifacts: 'zap-report.json',
                                      allowEmptyArchive: true
                 }
