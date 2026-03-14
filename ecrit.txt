@@ -1,2 +1,72 @@
-les apostrophes autour des émojis (dans le code), ne sont pas reconnus
-le block post à la fin est mélangé
+1-J'ai changé le port et lancé jenkins via docker sur le port 8076
+
+
+
+2-les apostrophes autour des émojis (dans le code), ne sont pas reconnus, j'ai du les enlever
+le block post à la fin est mélangé, j'ai du le rectifier
+
+
+
+3-Aussi, j'ai ajouté un fichier app_fixed.py pour que mon code ne laisse pas passer de vulnérabilité medium suppérieur à 4. Ce qui améliore le quality gate. Ainsi, la pipeline ne passe que quand le code est propre.
+
+
+
+4- Concernant la clé, avant, on avait 
+ SECRET_KEY = 'super_secret_123' 
+
+La clé secrete est écrite directement dans le code. Si quelqu'un accède à mon code source, il peut voir immédiatement la clé.
+
+Ainsi, pour ne pas compromette la securité de mon code, j'ai fait : 
+SECRET_KEY = os.environ.get ('SECRET_KEY', 'fallback_dev_key')
+La clé esst maintenant lui depuis une variable d'environnement. Elle n'est plus dans le code.
+Donc, meme si quelqu'un voit le code GitHub, il ne voit pas la vraie clé.
+
+
+
+5-Injection SQL
+voici le problème :
+cursor.execute(f"SELECT * FROM users WHERE name = '{query}'")
+Si un utilisateur tape ' OR '1'='1 dans le champ de recherche, la requete devient : 
+SELECT * FROM users WHERE name = '' OR '1'='1'
+Ce qui retourne tous les utilisateurs de la base! Un attaquant peut ainsi lire, modifier ou supprimer toutes la base de données.
+
+Voici la corection que j'ai apportée
+cursor.execute("SELECT * FROM users WHERE name = ?", (query,))
+Le ? est un paramettre préparé. Ainsi, Python echappe automatiquement la valeur et l'injection SQL devient impossible.
+
+
+
+
+6-XSS 
+Le problème :
+return render_template_string(f'<h1>Hello {name}!</h1>')
+Si un utilisateur tape <script>alert('hacked')</script> comme nom, le navigateur exécute ce script. Un attaquant peut ainsi voler des cookies de session, rediriger vers un faux site, ou espionner les actions de l'utilisateur.
+
+La correction :
+
+from markupsafe import escape 
+return f'<h1>Hello {escape(name)}!</h1>'
+escape() transforme les caractères dangereux en texte inoffensif. Par exemple <script> devient &lt;script&gt; — le navigateur l'affiche comme du texte, il ne l'exécute pas.
+
+7-Flash debug et binding
+
+le problème :
+app.run(host='0.0.0.0', port=5000, debug=True)
+il y a ici, deux problèmes qui se posent : 
+-debug=True active le débogueur qui permet d'exécuter du code Python
+directement depuis le navigateur. 
+En production c'est catastrophique, n'importe qui peut exécuter du code sur ton serveur.
+-host='0.0.0.0' : l'application écoute sur toutes les interfaces réseau, donc elle est accessible depuis n'importe quelle machine du réseau, pas seulement en local.
+
+Correction :
+app.run(host='127.0.0.1', port=5000, debug=False)
+Il y a donc deux corrections :
+-debug=False : le débogueur est désactivé en production
+-host='127.0.0.1': l'application n'est accessible que localement, depuis la machine elle-même
+
+
+
+8-Quality gate
+Avec quality Gate, voici ce que j'ai fait :
+Bandit génère un rapport JSON -> Quality Gate lit le rapport -> (MEDIUM = 0 →  Pipeline continue) ou (MEDIUM > 0 → Pipeline bloqué)
+
